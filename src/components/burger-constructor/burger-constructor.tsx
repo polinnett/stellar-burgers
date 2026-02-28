@@ -1,23 +1,39 @@
 import { FC, useMemo } from 'react';
-import { useSelector } from 'react-redux'; // или ваш typed useSelector
+import { useSelector, useDispatch } from 'react-redux';
+import type { AppDispatch } from '../../services/store';
+
 import { TConstructorIngredient } from '@utils-types';
 import { BurgerConstructorUI } from '@ui';
 import {
   selectConstructorItems,
   selectOrderRequest,
-  selectOrderModalData
+  selectOrderModalData,
+  createOrder,
+  setOrderModalData
 } from '../../services/slices/burger-constructor';
 
 export const BurgerConstructor: FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+
   const constructorItems = useSelector(selectConstructorItems);
   const orderRequest = useSelector(selectOrderRequest);
   const orderModalData = useSelector(selectOrderModalData);
 
   const onOrderClick = () => {
     if (!constructorItems.bun || orderRequest) return;
+
+    const ids = [
+      constructorItems.bun._id,
+      ...constructorItems.ingredients.map((i) => i._id),
+      constructorItems.bun._id
+    ];
+
+    dispatch(createOrder(ids));
   };
 
-  const closeOrderModal = () => {};
+  const closeOrderModal = () => {
+    dispatch(setOrderModalData(null));
+  };
 
   const price = useMemo(
     () =>

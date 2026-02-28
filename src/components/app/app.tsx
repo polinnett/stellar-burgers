@@ -8,6 +8,7 @@ import {
   selectIngredientsError,
   selectIngredientsLoading
 } from '../../services/slices/ingredients-slice';
+import { checkUserAuth } from '../../services/slices/auth-slice';
 import { Preloader } from '@ui';
 
 import '../../index.css';
@@ -51,19 +52,32 @@ const App = () => {
 
   useEffect(() => {
     dispatch(fetchIngredients());
+    dispatch(checkUserAuth());
   }, [dispatch]);
+
+  if (isIngredientsLoading) {
+    return (
+      <div className={styles.app}>
+        <AppHeader />
+        <Preloader />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.app}>
+        <AppHeader />
+        <div className={`${styles.error} text text_type_main-medium pt-4`}>
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.app}>
       <AppHeader />
-
-      {isIngredientsLoading && <Preloader />}
-      {error && (
-        <div className={`${styles.error} text text_type_main-medium pt-4`}>
-          {error}
-        </div>
-      )}
-
       <Routes location={backgroundLocation || location}>
         <Route path='/' element={<ConstructorPage />} />
         <Route path='/feed' element={<Feed />} />
@@ -96,7 +110,6 @@ const App = () => {
 
         <Route path='*' element={<NotFound404 />} />
       </Routes>
-
       {backgroundLocation && (
         <Routes>
           <Route

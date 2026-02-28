@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { orderBurgerApi } from '../../utils/burger-api';
 import type { RootState } from '../root-reducer';
 import type {
   TConstructorIngredient,
@@ -17,6 +18,11 @@ type TBurgerConstructorState = {
   orderModalData: TOrder | null;
 };
 
+type TMoveIngredientPayload = {
+  from: number;
+  to: number;
+};
+
 const initialState: TBurgerConstructorState = {
   constructorItems: {
     bun: null,
@@ -25,6 +31,26 @@ const initialState: TBurgerConstructorState = {
   orderRequest: false,
   orderModalData: null
 };
+
+export const createOrder = createAsyncThunk<TOrder, string[]>(
+  'burgerConstructor/createOrder',
+  async (ingredientsIds) => {
+    const data = await orderBurgerApi(ingredientsIds);
+    const o = data.order;
+
+    const order: TOrder = {
+      _id: o._id,
+      status: o.status,
+      name: o.name,
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
+      number: o.number,
+      ingredients: ingredientsIds
+    };
+
+    return order;
+  }
+);
 
 const burgerConstructorSlice = createSlice({
   name: 'burgerConstructor',
@@ -45,6 +71,20 @@ const burgerConstructorSlice = createSlice({
           (item) => item.id !== action.payload
         );
     },
+    moveConstructorIngredient(
+      state,
+      action: PayloadAction<TMoveIngredientPayload>
+    ) {
+      const { from, to } = action.payload;
+
+      const items = state.constructorItems.ingredients;
+
+      if (from < 0 || to < 0 || from >= items.length || to >= items.length)
+        return;
+
+      const [moved] = items.splice(from, 1);
+      items.splice(to, 0, moved);
+    },
     clearConstructor(state) {
       state.constructorItems = { bun: null, ingredients: [] };
     },
@@ -55,6 +95,19 @@ const burgerConstructorSlice = createSlice({
     setOrderModalData(state, action: PayloadAction<TOrder | null>) {
       state.orderModalData = action.payload;
     }
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(createOrder.pending, (state) => {
+        state.orderRequest = true;
+      })
+      .addCase(createOrder.fulfilled, (state, action) => {
+        state.orderRequest = false;
+        state.orderModalData = action.payload;
+      })
+      .addCase(createOrder.rejected, (state) => {
+        state.orderRequest = false;
+      });
   }
 });
 
@@ -64,6 +117,7 @@ export const {
   setConstructorBun,
   addConstructorIngredient,
   removeConstructorIngredient,
+  moveConstructorIngredient,
   clearConstructor,
   setOrderRequest,
   setOrderModalData

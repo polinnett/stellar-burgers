@@ -1,5 +1,11 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import type { ReactElement } from 'react';
+import { useSelector } from '../../services/store';
+import { Preloader } from '@ui';
+import {
+  selectAuthChecked,
+  selectUser
+} from '../../services/slices/auth-slice';
 
 type Props = {
   element: ReactElement;
@@ -9,8 +15,13 @@ type Props = {
 export default function ProtectedRoute({ element, onlyUnAuth }: Props) {
   const location = useLocation();
 
-  // TODO: заменить на реальную проверку авторизации из Redux
-  const isAuth = false;
+  const isAuthChecked = useSelector(selectAuthChecked);
+  const user = useSelector(selectUser);
+  const isAuth = Boolean(user);
+
+  if (!isAuthChecked) {
+    return <Preloader />;
+  }
 
   if (onlyUnAuth && isAuth) {
     return <Navigate to='/' replace />;
