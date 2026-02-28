@@ -12,8 +12,6 @@ import {
   setConstructorBun
 } from '../../services/slices/burger-constructor';
 
-import type { TConstructorIngredient } from '@utils-types';
-
 export const BurgerIngredient: FC<TBurgerIngredientProps> = memo(
   ({ ingredient, count }) => {
     const location = useLocation();
@@ -25,12 +23,7 @@ export const BurgerIngredient: FC<TBurgerIngredientProps> = memo(
         return;
       }
 
-      const item: TConstructorIngredient = {
-        ...ingredient,
-        id: crypto.randomUUID()
-      };
-
-      dispatch(addConstructorIngredient(item));
+      dispatch(addConstructorIngredient(ingredient));
     };
 
     return (

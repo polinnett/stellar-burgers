@@ -64,19 +64,23 @@ const burgerConstructorSlice = createSlice({
     setConstructorBun(state, action: PayloadAction<TIngredient | null>) {
       state.constructorItems.bun = action.payload;
     },
-    addConstructorIngredient(
-      state,
-      action: PayloadAction<TConstructorIngredient>
-    ) {
-      const item = {
-        ...action.payload,
-        id: action.payload.id ?? nanoid()
-      };
+    addConstructorIngredient: {
+      reducer(state, action: PayloadAction<TConstructorIngredient>) {
+        const item = action.payload;
 
-      const items = state.constructorItems.ingredients;
-      const middleIndex = Math.floor(items.length / 2);
+        const items = state.constructorItems.ingredients;
+        const middleIndex = Math.floor(items.length / 2);
 
-      items.splice(middleIndex, 0, item);
+        items.splice(middleIndex, 0, item);
+      },
+      prepare(ingredient: TIngredient) {
+        return {
+          payload: {
+            ...ingredient,
+            id: nanoid()
+          } as TConstructorIngredient
+        };
+      }
     },
     removeConstructorIngredient(state, action: PayloadAction<string>) {
       state.constructorItems.ingredients =
