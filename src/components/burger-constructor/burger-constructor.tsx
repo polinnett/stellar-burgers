@@ -1,6 +1,7 @@
 import { FC, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../services/store';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { TConstructorIngredient } from '@utils-types';
 import { BurgerConstructorUI } from '@ui';
@@ -12,6 +13,8 @@ import {
   setOrderModalData
 } from '../../services/slices/burger-constructor';
 
+import { selectUser } from '../../services/slices/auth-slice';
+
 export const BurgerConstructor: FC = () => {
   const dispatch = useDispatch<AppDispatch>();
 
@@ -19,8 +22,19 @@ export const BurgerConstructor: FC = () => {
   const orderRequest = useSelector(selectOrderRequest);
   const orderModalData = useSelector(selectOrderModalData);
 
+  const user = useSelector(selectUser);
+  const isAuth = Boolean(user);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const onOrderClick = () => {
     if (!constructorItems.bun || orderRequest) return;
+
+    if (!isAuth) {
+      navigate('/login', { state: { from: location } });
+      return;
+    }
 
     const ids = [
       constructorItems.bun._id,
