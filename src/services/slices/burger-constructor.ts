@@ -1,4 +1,9 @@
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import {
+  createSlice,
+  PayloadAction,
+  createAsyncThunk,
+  nanoid
+} from '@reduxjs/toolkit';
 import { orderBurgerApi } from '../../utils/burger-api';
 import type { RootState } from '../root-reducer';
 import type {
@@ -63,7 +68,15 @@ const burgerConstructorSlice = createSlice({
       state,
       action: PayloadAction<TConstructorIngredient>
     ) {
-      state.constructorItems.ingredients.push(action.payload);
+      const item = {
+        ...action.payload,
+        id: action.payload.id ?? nanoid()
+      };
+
+      const items = state.constructorItems.ingredients;
+      const middleIndex = Math.floor(items.length / 2);
+
+      items.splice(middleIndex, 0, item);
     },
     removeConstructorIngredient(state, action: PayloadAction<string>) {
       state.constructorItems.ingredients =
@@ -104,6 +117,7 @@ const burgerConstructorSlice = createSlice({
       .addCase(createOrder.fulfilled, (state, action) => {
         state.orderRequest = false;
         state.orderModalData = action.payload;
+        state.constructorItems = { bun: null, ingredients: [] };
       })
       .addCase(createOrder.rejected, (state) => {
         state.orderRequest = false;

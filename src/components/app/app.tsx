@@ -41,7 +41,11 @@ const App = () => {
 
   const navigate = useNavigate();
   const handleModalClose = () => {
-    navigate(-1);
+    if (backgroundLocation) {
+      navigate(backgroundLocation.pathname, { replace: true });
+    } else {
+      navigate(-1);
+    }
   };
 
   const dispatch = useDispatch();
