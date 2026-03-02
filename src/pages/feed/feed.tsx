@@ -1,15 +1,47 @@
+import { useEffect, FC } from 'react';
+
 import { Preloader } from '@ui';
 import { FeedUI } from '@ui-pages';
 import { TOrder } from '@utils-types';
-import { FC } from 'react';
+
+import { useDispatch, useSelector } from '../../services/store';
+import {
+  fetchFeed,
+  selectFeedOrders,
+  selectFeedLoading,
+  selectFeedError
+} from '../../services/slices/feed-slice';
+
+import {
+  fetchIngredients,
+  selectIngredients
+} from '../../services/slices/ingredients-slice';
 
 export const Feed: FC = () => {
-  /** TODO: взять переменную из стора */
-  const orders: TOrder[] = [];
+  const dispatch = useDispatch();
 
-  if (!orders.length) {
+  const orders: TOrder[] = useSelector(selectFeedOrders);
+  const isLoading = useSelector(selectFeedLoading);
+  const error = useSelector(selectFeedError);
+  const ingredients = useSelector(selectIngredients);
+
+  useEffect(() => {
+    if (!ingredients.length) {
+      dispatch(fetchIngredients());
+    }
+
+    dispatch(fetchFeed());
+  }, [dispatch, ingredients.length]);
+
+  if (isLoading) {
     return <Preloader />;
   }
 
-  <FeedUI orders={orders} handleGetFeeds={() => {}} />;
+  if (error) {
+    return <div className='text text_type_main-medium pt-10'>{error}</div>;
+  }
+
+  return (
+    <FeedUI orders={orders} handleGetFeeds={() => dispatch(fetchFeed())} />
+  );
 };
