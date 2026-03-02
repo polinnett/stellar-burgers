@@ -4,22 +4,46 @@ const INGREDIENT_BUN = 'Тестовая булка';
 const INGREDIENT_MAIN = 'Тестовая начинка';
 const ORDER_NUMBER = '12345';
 
-function setAuthCookies() {
-  cy.setCookie('accessToken', 'Bearer test-access-token');
-  cy.setCookie('refreshToken', 'test-refresh-token');
-}
-
-function interceptOnAppLoad() {
-  cy.intercept('GET', '**/api/ingredients', { fixture: 'ingredients.json' }).as(
+function interceptCoreApi() {
+  cy.intercept('GET', '**/api/ingredients*', { fixture: 'ingredients.json' }).as(
     'getIngredients'
   );
-  cy.intercept('GET', '**/api/auth/user', { fixture: 'user.json' }).as('getUser');
+  cy.intercept('GET', '**/api/auth/user*', { fixture: 'user.json' }).as('getUser');
 }
 
 function interceptCreateOrder() {
-  cy.intercept('POST', '**/api/orders', { fixture: 'order.json' }).as(
-    'createOrder'
-  );
+  cy.intercept('POST', '**/api/orders*', { fixture: 'order.json' }).as('createOrder');
+}
+
+function interceptAllApiGuard() {
+  const allowed = [
+    /\/api\/ingredients(\?.*)?$/,
+    /\/api\/auth\/user(\?.*)?$/,
+    /\/api\/orders(\?.*)?$/
+  ];
+
+  cy.intercept('**/api/**', (req) => {
+    const ok = allowed.some((r) => r.test(req.url));
+    if (!ok) {
+      throw new Error(`Unexpected API call: ${req.method} ${req.url}`);
+    }
+    req.continue();
+  });
+}
+
+function setFakeAuthTokens() {
+  cy.setCookie('accessToken', 'Bearer test-access-token');
+  cy.setCookie('refreshToken', 'test-refresh-token');
+
+  cy.window().then((w) => {
+    w.localStorage.setItem('accessToken', 'Bearer test-access-token');
+    w.localStorage.setItem('refreshToken', 'test-refresh-token');
+  });
+}
+
+function clearFakeAuthTokens() {
+  cy.clearCookies();
+  cy.clearLocalStorage();
 }
 
 function addIngredientByName(name: string) {
@@ -69,22 +93,25 @@ function clickPlaceOrder() {
 }
 
 function expectConstructorEmpty() {
-    cy.contains('Оформить заказ')
-      .closest('section, div')
-      .should('exist')
-      .within(() => {
-        cy.contains(INGREDIENT_BUN).should('not.exist');
-        cy.contains(INGREDIENT_MAIN).should('not.exist');
-      });
+  cy.contains('Оформить заказ')
+    .closest('section, div')
+    .should('exist')
+    .within(() => {
+      cy.contains(INGREDIENT_BUN).should('not.exist');
+      cy.contains(INGREDIENT_MAIN).should('not.exist');
+    });
 }
 
-describe('Конструктор бургера — Cypress', () => {
+describe('Конструктор бургера (без авторизации)', () => {
   beforeEach(() => {
-    setAuthCookies();
-    interceptOnAppLoad();
+    interceptAllApiGuard();
+    interceptCoreApi();
     cy.visit('/');
     cy.wait('@getIngredients');
-    cy.wait('@getUser');
+  });
+
+  afterEach(() => {
+    clearFakeAuthTokens();
   });
 
   it('Добавление ингредиентов (булка + начинка) в конструктор', () => {
@@ -94,26 +121,55 @@ describe('Конструктор бургера — Cypress', () => {
     cy.contains(INGREDIENT_MAIN).should('exist');
   });
 
-  it('Модалка ингредиента: открытие и закрытие по крестику', () => {
+  it('Модалка ингредиента: открытие, данные выбранного ингредиента, закрытие по крестику', () => {
     openIngredientModal(INGREDIENT_BUN);
     cy.location('pathname').should('contain', '/ingredients/');
-    cy.contains(INGREDIENT_BUN).should('exist');
+    cy.get('#modals').within(() => {
+      cy.contains(INGREDIENT_BUN).should('exist');
+      cy.get('img[alt="изображение ингредиента."]').should('exist');
+    });
+
     closeModalByX();
     expectPortalClosed();
     expectIngredientRouteClosed();
   });
 
-  it('Модалка ингредиента: закрытие по клику на оверлей (желательно)', () => {
+  it('Модалка ингредиента: закрытие по клику на оверлей', () => {
     openIngredientModal(INGREDIENT_MAIN);
     cy.location('pathname').should('contain', '/ingredients/');
-    cy.contains(INGREDIENT_MAIN).should('exist');
+    cy.get('#modals').within(() => {
+      cy.contains(INGREDIENT_MAIN).should('exist');
+      cy.get('img[alt="изображение ингредиента."]').should('exist');
+    });
+
     closeModalByOverlay();
     expectPortalClosed();
     expectIngredientRouteClosed();
   });
+});
 
-  it('Создание заказа: мок user + мок order + токены + номер + конструктор очищен', () => {
+describe('Конструктор бургера (создание заказа с авторизацией)', () => {
+  beforeEach(() => {
+    interceptAllApiGuard();
+    interceptCoreApi();
     interceptCreateOrder();
+    cy.setCookie('accessToken', 'Bearer test-access-token');
+    cy.setCookie('refreshToken', 'test-refresh-token');
+    cy.visit('/');
+    cy.window().then((w) => {
+      w.localStorage.setItem('accessToken', 'Bearer test-access-token');
+      w.localStorage.setItem('refreshToken', 'test-refresh-token');
+    });
+
+    cy.wait('@getIngredients');
+    cy.wait('@getUser');
+  });
+
+  afterEach(() => {
+    clearFakeAuthTokens();
+  });
+
+  it('Создание заказа (токены, сборка, номер, закрытие, очистка конструктора)', () => {
     addIngredientByName(INGREDIENT_BUN);
     addIngredientByName(INGREDIENT_MAIN);
     clickPlaceOrder();
