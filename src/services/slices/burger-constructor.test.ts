@@ -2,7 +2,8 @@ import {
   burgerConstructorReducer,
   addConstructorIngredient,
   removeConstructorIngredient,
-  moveConstructorIngredient
+  moveConstructorIngredient,
+  setConstructorBun
 } from './burger-constructor';
 
 import type { TIngredient } from '../../utils/types';
@@ -31,6 +32,34 @@ describe('burgerConstructor reducer', () => {
     carbohydrates: 2,
     calories: 2,
     price: 20,
+    image: 'x',
+    image_mobile: 'x',
+    image_large: 'x'
+  };
+
+  const bun1: TIngredient = {
+    _id: 'b1',
+    name: 'Булка 1',
+    type: 'bun',
+    proteins: 10,
+    fat: 10,
+    carbohydrates: 10,
+    calories: 10,
+    price: 100,
+    image: 'x',
+    image_mobile: 'x',
+    image_large: 'x'
+  };
+
+  const bun2: TIngredient = {
+    _id: 'b2',
+    name: 'Булка 2',
+    type: 'bun',
+    proteins: 20,
+    fat: 20,
+    carbohydrates: 20,
+    calories: 20,
+    price: 200,
     image: 'x',
     image_mobile: 'x',
     image_large: 'x'
@@ -78,5 +107,22 @@ describe('burgerConstructor reducer', () => {
     expect(after).toHaveLength(2);
     expect(after[0]).toBe(before[1]);
     expect(after[1]).toBe(before[0]);
+  });
+
+  it('Должен обработать установку булки', () => {
+    const state = burgerConstructorReducer(undefined, setConstructorBun(bun1));
+    expect(state.constructorItems.bun).toEqual(bun1);
+  });
+
+  it('Должен заменять булку при повторной установке', () => {
+    const stateWithBun = burgerConstructorReducer(
+      undefined,
+      setConstructorBun(bun1)
+    );
+    const stateAfterReplace = burgerConstructorReducer(
+      stateWithBun,
+      setConstructorBun(bun2)
+    );
+    expect(stateAfterReplace.constructorItems.bun).toEqual(bun2);
   });
 });
